@@ -7,10 +7,17 @@ const parser = new Parser();
 
 app.use(cors());
 
+
 const feeds = [
   "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
-  "https://www.ilsole24ore.com/rss/finanza.xml"
+  "https://www.ilsole24ore.com/rss/finanza.xml",
+  "https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best",
+  "https://www.ft.com/rss",
+  "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+  "http://feeds.marketwatch.com/marketwatch/topstories/",
+  "https://finance.yahoo.com/news/rssindex"
 ];
+
 
 app.get("/news", async (req, res) => {
   try {
