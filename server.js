@@ -35,7 +35,7 @@ app.get("/news", async (req, res) => {
     }
 
     articles.sort((a, b) => b.pubDate - a.pubDate);
-
+    articles = articles.slice(0, 50);
     res.json(articles);
   } catch (error) {
     res.status(500).send("Errore nel recupero news");
