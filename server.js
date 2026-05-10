@@ -41,11 +41,29 @@ app.get("/news", async (req, res) => {
               title.toLowerCase().includes(k)
             );
 
+            // ✅ categorizzazione
+            let category = "general";
+            const text = title.toLowerCase();
+
+            if (text.includes("defense") || text.includes("war") || text.includes("military") || text.includes("nato")) {
+              category = "defense";
+            }
+            else if (text.includes("ai") || text.includes("artificial intelligence") || text.includes("software") || text.includes("tech")) {
+              category = "ai";
+            }
+            else if (text.includes("semiconductor") || text.includes("chip") || text.includes("nvidia") || text.includes("tsmc")) {
+              category = "semiconductor";
+            }
+            else if (text.includes("fed") || text.includes("inflation") || text.includes("interest rate") || text.includes("economy")) {
+              category = "macro";
+            }
+
             return {
               title: title,
               link: item.link || "",
               pubDate: new Date(item.pubDate || item.isoDate),
-              important: isImportant
+              important: isImportant,
+              category: category
             };
           })
         );
@@ -55,10 +73,10 @@ app.get("/news", async (req, res) => {
       }
     }
 
-    // ✅ Filtra date valide
+    // ✅ filtra date valide
     articles = articles.filter(a => !isNaN(a.pubDate));
 
-    // ✅ Deduplica intelligente
+    // ✅ deduplica intelligente
     const unique = {};
     articles.forEach(a => {
       const key = a.title
@@ -72,10 +90,10 @@ app.get("/news", async (req, res) => {
     });
     articles = Object.values(unique);
 
-    // ✅ Ordina
+    // ✅ ordina
     articles.sort((a, b) => b.pubDate - a.pubDate);
 
-    // ✅ Limite
+    // ✅ limita
     articles = articles.slice(0, 50);
 
     res.json(articles);
