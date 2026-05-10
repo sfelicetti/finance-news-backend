@@ -28,11 +28,28 @@ app.get("/news", async (req, res) => {
         const feed = await parser.parseURL(url);
 
         articles = articles.concat(
-          feed.items.map(item => ({
-            title: item.title || "No title",
-            link: item.link || "",
-            pubDate: new Date(item.pubDate || item.isoDate)
-          }))
+          feed.items.map(item => {
+  const title = item.title || "No title";
+
+  const importantKeywords = [
+    "fed", "inflation", "interest rate",
+    "war", "china", "crisis",
+    "earnings", "profit", "guidance",
+    "merger", "acquisition",
+    "ai", "semiconductor", "defense"
+  ];
+
+  const isImportant = importantKeywords.some(k =>
+    title.toLowerCase().includes(k)
+  );
+
+  return {
+    title: title,
+    link: item.link || "",
+    pubDate: new Date(item.pubDate || item.isoDate),
+    important: isImportant
+  };
+})
         );
 
       } catch (err) {
