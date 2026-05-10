@@ -7,10 +7,9 @@ const parser = new Parser();
 
 app.use(cors());
 
-// ✅ Feed RSS (corretti)
 const feeds = [
-  "https://feeds.a.dj.com/rss/RSSMarketsMain.xml", // WSJ
-  "https://www.ilsole24ore.com/rss/finanza.xml",   // Sole24Ore
+  "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+  "https://www.ilsole24ore.com/rss/finanza.xml",
   "https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best",
   "https://www.ft.com/rss",
   "https://www.cnbc.com/id/100003114/device/rss/rss.html",
@@ -18,7 +17,6 @@ const feeds = [
   "https://finance.yahoo.com/news/rssindex"
 ];
 
-// ✅ Endpoint news
 app.get("/news", async (req, res) => {
   try {
     let articles = [];
@@ -29,27 +27,27 @@ app.get("/news", async (req, res) => {
 
         articles = articles.concat(
           feed.items.map(item => {
-  const title = item.title || "No title";
+            const title = item.title || "No title";
 
-  const importantKeywords = [
-    "fed", "inflation", "interest rate",
-    "war", "china", "crisis",
-    "earnings", "profit", "guidance",
-    "merger", "acquisition",
-    "ai", "semiconductor", "defense"
-  ];
+            const importantKeywords = [
+              "fed", "inflation", "interest rate",
+              "war", "china", "crisis",
+              "earnings", "profit", "guidance",
+              "merger", "acquisition",
+              "ai", "semiconductor", "defense"
+            ];
 
-  const isImportant = importantKeywords.some(k =>
-    title.toLowerCase().includes(k)
-  );
+            const isImportant = importantKeywords.some(k =>
+              title.toLowerCase().includes(k)
+            );
 
-  return {
-    title: title,
-    link: item.link || "",
-    pubDate: new Date(item.pubDate || item.isoDate),
-    important: isImportant
-  };
-})
+            return {
+              title: title,
+              link: item.link || "",
+              pubDate: new Date(item.pubDate || item.isoDate),
+              important: isImportant
+            };
+          })
         );
 
       } catch (err) {
@@ -57,27 +55,27 @@ app.get("/news", async (req, res) => {
       }
     }
 
-    // ✅ rimuove date non valide
+    // ✅ Filtra date valide
     articles = articles.filter(a => !isNaN(a.pubDate));
-    
-// ✅ QUI rimozione duplicati
-const unique = {};
-articles.forEach(a => {
-  
-const key = a.title
-    .toLowerCase()
-    .replace(/[^a-z0-9]/gi, "")
-    .substring(0, 60);
-  if (!unique[key]) {
-    unique[key] = a;
-  }
-});
-articles = Object.values(unique);
 
-    // ✅ ordina dalla più recente
+    // ✅ Deduplica intelligente
+    const unique = {};
+    articles.forEach(a => {
+      const key = a.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]/gi, "")
+        .substring(0, 60);
+
+      if (!unique[key]) {
+        unique[key] = a;
+      }
+    });
+    articles = Object.values(unique);
+
+    // ✅ Ordina
     articles.sort((a, b) => b.pubDate - a.pubDate);
 
-    // ✅ massimo 50 articoli
+    // ✅ Limite
     articles = articles.slice(0, 50);
 
     res.json(articles);
