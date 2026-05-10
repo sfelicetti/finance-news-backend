@@ -46,7 +46,11 @@ app.get("/news", async (req, res) => {
 // ✅ QUI rimozione duplicati
 const unique = {};
 articles.forEach(a => {
-  const key = a.title.trim().toLowerCase();
+  
+const key = a.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]/gi, "")
+    .substring(0, 60);
   if (!unique[key]) {
     unique[key] = a;
   }
