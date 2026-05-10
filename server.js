@@ -42,6 +42,16 @@ app.get("/news", async (req, res) => {
 
     // ✅ rimuove date non valide
     articles = articles.filter(a => !isNaN(a.pubDate));
+    
+// ✅ QUI rimozione duplicati
+const unique = {};
+articles.forEach(a => {
+  const key = a.title.trim().toLowerCase();
+  if (!unique[key]) {
+    unique[key] = a;
+  }
+});
+articles = Object.values(unique);
 
     // ✅ ordina dalla più recente
     articles.sort((a, b) => b.pubDate - a.pubDate);
