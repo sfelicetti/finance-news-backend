@@ -7,30 +7,31 @@ const parser = new Parser();
 
 app.use(cors());
 
+// ✅ FEEDS CON SOURCE
 const feeds = [
-  "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
-  "https://www.ilsole24ore.com/rss/finanza.xml",
-  "https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best",
-  "https://www.ft.com/rss",
-  "https://www.cnbc.com/id/100003114/device/rss/rss.html",
-  "http://feeds.marketwatch.com/marketwatch/topstories/",
-  "https://finance.yahoo.com/news/rssindex"
+  { url: "https://feeds.a.dj.com/rss/RSSMarketsMain.xml", source: "WSJ" },
+  { url: "https://www.ilsole24ore.com/rss/finanza.xml", source: "Il Sole 24 Ore" },
+  { url: "https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best", source: "Reuters" },
+  { url: "https://www.ft.com/rss", source: "Financial Times" },
+  { url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", source: "CNBC" },
+  { url: "http://feeds.marketwatch.com/marketwatch/topstories/", source: "MarketWatch" },
+  { url: "https://finance.yahoo.com/news/rssindex", source: "Yahoo Finance" }
 ];
 
 app.get("/news", async (req, res) => {
   try {
     let articles = [];
 
-    for (let url of feeds) {
+    for (let feedObj of feeds) {
       try {
-        const feed = await parser.parseURL(url);
+        const feed = await parser.parseURL(feedObj.url);
 
         articles = articles.concat(
           feed.items.map(item => {
             const title = item.title || "No title";
             const text = title.toLowerCase();
 
-            // ✅ IMPORTANT
+            // IMPORTANT
             const importantKeywords = [
               "fed", "inflation", "interest rate",
               "war", "china", "crisis",
@@ -43,7 +44,7 @@ app.get("/news", async (req, res) => {
               text.includes(k)
             );
 
-            // ✅ SCORE
+            // SCORE
             let score = 1;
 
             if (
@@ -80,7 +81,7 @@ app.get("/news", async (req, res) => {
               score = 2;
             }
 
-            // ✅ CATEGORY
+            // CATEGORY
             let category = "general";
 
             if (text.includes("defense") || text.includes("war") || text.includes("military") || text.includes("nato")) {
@@ -102,20 +103,19 @@ app.get("/news", async (req, res) => {
               pubDate: new Date(item.pubDate || item.isoDate),
               important: isImportant,
               category: category,
-              score: score
+              score: score,
+              source: feedObj.source // ✅ NUOVO CAMPO
             };
           })
         );
 
       } catch (err) {
-        console.log("Errore feed:", url);
+        console.log("Errore feed:", feedObj.url);
       }
     }
 
-    // ✅ date valide
     articles = articles.filter(a => !isNaN(a.pubDate));
 
-    // ✅ deduplica
     const unique = {};
     articles.forEach(a => {
       const key = a.title
@@ -129,7 +129,6 @@ app.get("/news", async (req, res) => {
     });
     articles = Object.values(unique);
 
-    // ✅ ordinamento score + data
     articles.sort((a, b) => {
       if (b.score === a.score) {
         return b.pubDate - a.pubDate;
@@ -137,7 +136,6 @@ app.get("/news", async (req, res) => {
       return b.score - a.score;
     });
 
-    // ✅ limite
     articles = articles.slice(0, 50);
 
     res.json(articles);
