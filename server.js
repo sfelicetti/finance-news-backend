@@ -18,6 +18,34 @@ const feeds = [
   { url: "https://finance.yahoo.com/news/rssindex", source: "Yahoo Finance" }
 ];
 
+// ✅ TICKER DATABASE (espandibile)
+const tickers = {
+  "nvidia": "NVDA",
+  "asml": "ASML",
+  "tesla": "TSLA",
+  "apple": "AAPL",
+  "microsoft": "MSFT",
+  "google": "GOOGL",
+  "amazon": "AMZN",
+  "meta": "META",
+  "netflix": "NFLX",
+  "tsmc": "TSM",
+  "intel": "INTC",
+  "amd": "AMD",
+  "boeing": "BA",
+  "airbus": "AIR",
+  "rheinmetall": "RHM",
+  "leonardo": "LDO",
+  "lockheed": "LMT",
+  "northrop": "NOC",
+  "raytheon": "RTX",
+  "general dynamics": "GD"
+};
+
+// ✅ SENTIMENT KEYWORDS
+const positiveWords = ["beat", "growth", "strong", "surge", "record", "profit", "up", "gain", "upgrade"];
+const negativeWords = ["miss", "drop", "fall", "weak", "warn", "cut", "crisis", "down", "loss"];
+
 app.get("/news", async (req, res) => {
   try {
     let articles = [];
@@ -31,7 +59,7 @@ app.get("/news", async (req, res) => {
             const title = item.title || "No title";
             const text = title.toLowerCase();
 
-            // IMPORTANT
+            // ✅ IMPORTANT
             const importantKeywords = [
               "fed", "inflation", "interest rate",
               "war", "china", "crisis",
@@ -40,71 +68,52 @@ app.get("/news", async (req, res) => {
               "ai", "semiconductor", "defense"
             ];
 
-            const isImportant = importantKeywords.some(k =>
-              text.includes(k)
-            );
+            const isImportant = importantKeywords.some(k => text.includes(k));
 
-            // SCORE
+            // ✅ SCORE
             let score = 1;
 
-            if (
-              text.includes("fed") ||
-              text.includes("interest rate") ||
-              text.includes("inflation") ||
-              text.includes("crisis") ||
-              text.includes("war")
-            ) {
-              score = 5;
-            }
-            else if (
-              text.includes("earnings") ||
-              text.includes("profit") ||
-              text.includes("guidance") ||
-              text.includes("merger") ||
-              text.includes("acquisition")
-            ) {
-              score = 4;
-            }
-            else if (
-              text.includes("ai") ||
-              text.includes("semiconductor") ||
-              text.includes("chip") ||
-              text.includes("nvidia")
-            ) {
-              score = 3;
-            }
-            else if (
-              text.includes("economy") ||
-              text.includes("market") ||
-              text.includes("stocks")
-            ) {
-              score = 2;
-            }
+            if (text.match(/fed|inflation|interest rate|crisis|war/)) score = 5;
+            else if (text.match(/earnings|profit|guidance|merger|acquisition/)) score = 4;
+            else if (text.match(/ai|semiconductor|chip|nvidia/)) score = 3;
+            else if (text.match(/economy|market|stocks/)) score = 2;
 
-            // CATEGORY
+            // ✅ CATEGORY
             let category = "general";
 
-            if (text.includes("defense") || text.includes("war") || text.includes("military") || text.includes("nato")) {
-              category = "defense";
-            }
-            else if (text.includes("ai") || text.includes("artificial intelligence") || text.includes("software") || text.includes("tech")) {
-              category = "ai";
-            }
-            else if (text.includes("semiconductor") || text.includes("chip") || text.includes("nvidia") || text.includes("tsmc")) {
-              category = "semiconductor";
-            }
-            else if (text.includes("fed") || text.includes("inflation") || text.includes("interest rate") || text.includes("economy")) {
-              category = "macro";
+            if (text.match(/defense|war|military|nato/)) category = "defense";
+            else if (text.match(/ai|software|tech|artificial intelligence/)) category = "ai";
+            else if (text.match(/semiconductor|chip|tsmc|nvidia/)) category = "semiconductor";
+            else if (text.match(/fed|inflation|economy|interest rate/)) category = "macro";
+
+            // ✅ TICKER DETECTION
+            let ticker = null;
+            for (let key in tickers) {
+              if (text.includes(key)) {
+                ticker = tickers[key];
+                break;
+              }
             }
 
+            // ✅ SENTIMENT
+            let sentiment = "neutral";
+
+            const pos = positiveWords.some(w => text.includes(w));
+            const neg = negativeWords.some(w => text.includes(w));
+
+            if (pos && !neg) sentiment = "positive";
+            else if (neg && !pos) sentiment = "negative";
+
             return {
-              title: title,
+              title,
               link: item.link || "",
               pubDate: new Date(item.pubDate || item.isoDate),
               important: isImportant,
-              category: category,
-              score: score,
-              source: feedObj.source // ✅ NUOVO CAMPO
+              category,
+              score,
+              source: feedObj.source,
+              ticker,
+              sentiment
             };
           })
         );
@@ -116,29 +125,21 @@ app.get("/news", async (req, res) => {
 
     articles = articles.filter(a => !isNaN(a.pubDate));
 
+    // deduplica
     const unique = {};
     articles.forEach(a => {
-      const key = a.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]/gi, "")
-        .substring(0, 60);
-
-      if (!unique[key]) {
-        unique[key] = a;
-      }
+      const key = a.title.toLowerCase().replace(/[^a-z0-9]/gi, "").substring(0, 60);
+      if (!unique[key]) unique[key] = a;
     });
+
     articles = Object.values(unique);
 
     articles.sort((a, b) => {
-      if (b.score === a.score) {
-        return b.pubDate - a.pubDate;
-      }
+      if (b.score === a.score) return b.pubDate - a.pubDate;
       return b.score - a.score;
     });
 
-    articles = articles.slice(0, 50);
-
-    res.json(articles);
+    res.json(articles.slice(0, 50));
 
   } catch (error) {
     console.error(error);
